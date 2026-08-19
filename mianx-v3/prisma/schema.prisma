@@ -29,6 +29,31 @@ enum SubscriptionStatus {
   UNPAID
 }
 
+enum MissionStatus {
+  DRAFT
+  PLANNING
+  EXECUTING
+  VERIFYING
+  REPAIRING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum TaskRiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum MissionTaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 model User {
@@ -41,6 +66,7 @@ model User {
   accounts        Account[]
   sessions        Session[]
   webhookEvents   WebhookEvent[]
+  missions       Mission[]
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
 }
@@ -105,6 +131,38 @@ model Subscription {
   currentPeriodEnd  DateTime
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
+}
+
+model Mission {
+  id              String         @id @default(cuid())
+  userId          String
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rawGoal         String         // The user's original natural-language input
+  normalizedGoal  String         // Parsed, clean objective
+  status          MissionStatus  @default(DRAFT)
+  complexity      String         @default("MEDIUM")  // LOW, MEDIUM, HIGH
+  successCriteria Json           // Array of measurable criteria
+  budget          Float          @default(0)
+  budgetUsed      Float          @default(0)
+  tasks           MissionTask[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model MissionTask {
+  id             String            @id @default(cuid())
+  missionId      String
+  mission        Mission           @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  title          String
+  agent          String            // e.g. "Atlas", "Zen"
+  dependencies   String            // JSON array of dependency task titles
+  riskLevel      TaskRiskLevel     @default(MEDIUM)
+  status         MissionTaskStatus @default(PENDING)
+  result         String?           // Output / artifact reference when completed
+  error          String?           // Error message if failed
+  sortOrder      Int               @default(0)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
 }
 
 model Deliverable {
