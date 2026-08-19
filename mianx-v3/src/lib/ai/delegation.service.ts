@@ -27,16 +27,6 @@ export class DelegationSecurityError extends Error {
   }
 }
 
-// ─── Subset Check ────────────────────────────────────────────────────────────
-
-/**
- * Returns true if every element in `subset` also exists in `superset`.
- */
-function isSubset(subset: string[], superset: string[]): boolean {
-  const supersetSet = new Set(superset);
-  return subset.every((item) => supersetSet.has(item));
-}
-
 // ─── Security Validation ─────────────────────────────────────────────────────
 
 /**

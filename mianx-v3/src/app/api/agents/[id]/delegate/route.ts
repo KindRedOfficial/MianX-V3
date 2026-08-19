@@ -13,7 +13,7 @@ export async function POST(
 ) {
   try {
     // 1. Authenticate the user
-    const session = await getAuthSession();
+    await getAuthSession(); // Enforces authentication
 
     // 2. Parse and validate request body
     const body = (await req.json()) as DelegateRequestBody;
