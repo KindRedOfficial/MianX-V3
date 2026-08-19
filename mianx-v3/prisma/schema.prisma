@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum WebhookEventStatus {
+  RECEIVED
+  PROCESSING
+  PROCESSED
+  FAILED
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  TRIALING
+  UNPAID
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+model User {
+  id              String             @id @default(cuid())
+  email           String             @unique
+  name            String?
+  role            Role               @default(USER)
+  organizationId  String?
+  organization    Organization?      @relation(fields: [organizationId], references: [id])
+  accounts        Account[]
+  sessions        Session[]
+  webhookEvents   WebhookEvent[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+}
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  aiCredits   Int      @default(1000)
+  plan        String   @default("free")
+  users       User[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model WebhookEvent {
+  id            String              @id @default(cuid())
+  stripeEventId String              @unique
+  type          String
+  status        WebhookEventStatus @default(RECEIVED)
+  payload       String
+  processedAt   DateTime?
+  error         String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  userId        String?
+  user          User?               @relation(fields: [userId], references: [id])
+}
+
+model Subscription {
+  id                String             @id @default(cuid())
+  userId            String
+  stripeCustomerId  String
+  stripePriceId     String
+  stripeSubId       String             @unique
+  status            SubscriptionStatus
+  currentPeriodEnd  DateTime
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+}
+
+model Deliverable {
+  id              String   @id @default(cuid())
+  projectId       String
+  name            String
+  content         String   // BUG: stores base64 data — will be migrated to storageUrl
+  contentEncoding String   @default("base64") // BUG: no longer needed after migration
+  mimeType        String   @default("application/octet-stream") // BUG: no longer needed after migration
+  storageUrl      String?  // Will replace `content` after migration
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model AiUsageLog {
+  id              String   @id @default(cuid())
+  userId          String
+  organizationId  String?
+  tokensUsed      Int
+  model           String
+  createdAt       DateTime @default(now())
+}
