@@ -1,26 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-
-// BUG: Relies only on middleware JWT role claim — no DB-level check
+import { requireAdmin, AdminAuthError } from "@/lib/require-admin";
 
 export async function GET(req: NextRequest) {
-  // BUG: No server-side admin verification — trusts middleware only
-  const users = await prisma.user.findMany({
-    select: { id: true, email: true, name: true, role: true, organizationId: true },
-    orderBy: { createdAt: "desc" },
-  });
+  try {
+    await requireAdmin();
 
-  return NextResponse.json({ users });
+    const users = await prisma.user.findMany({
+      select: { id: true, email: true, name: true, role: true, organizationId: true },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json({ users });
+  } catch (err: unknown) {
+    if (err instanceof AdminAuthError) {
+      return NextResponse.json({ error: err.message }, { status: err.statusCode });
+    }
+    console.error("Admin users error:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 export async function PATCH(req: NextRequest) {
-  // BUG: No server-side admin verification
-  const { userId, role } = await req.json();
+  try {
+    await requireAdmin();
 
-  const user = await prisma.user.update({
-    where: { id: userId },
-    data: { role },
-  });
+    const { userId, role } = await req.json();
 
-  return NextResponse.json({ user });
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: { role },
+    });
+
+    return NextResponse.json({ user });
+  } catch (err: unknown) {
+    if (err instanceof AdminAuthError) {
+      return NextResponse.json({ error: err.message }, { status: err.statusCode });
+    }
+    console.error("Admin users update error:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

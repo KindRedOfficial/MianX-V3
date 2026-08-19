@@ -1,19 +1,27 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-
-// BUG: Relies only on middleware JWT role claim — no DB-level check
+import { requireAdmin, AdminAuthError } from "@/lib/require-admin";
 
 export async function GET() {
-  // BUG: No server-side admin verification — trusts middleware only
-  const [totalUsers, totalOrgs, totalSubscriptions] = await Promise.all([
-    prisma.user.count(),
-    prisma.organization.count(),
-    prisma.subscription.count(),
-  ]);
+  try {
+    await requireAdmin();
 
-  return NextResponse.json({
-    totalUsers,
-    totalOrgs,
-    totalSubscriptions,
-  });
+    const [totalUsers, totalOrgs, totalSubscriptions] = await Promise.all([
+      prisma.user.count(),
+      prisma.organization.count(),
+      prisma.subscription.count(),
+    ]);
+
+    return NextResponse.json({
+      totalUsers,
+      totalOrgs,
+      totalSubscriptions,
+    });
+  } catch (err: unknown) {
+    if (err instanceof AdminAuthError) {
+      return NextResponse.json({ error: err.message }, { status: err.statusCode });
+    }
+    console.error("Admin stats error:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
