@@ -5,7 +5,9 @@ import { requireAiQuota, deductAiCredits } from "@/lib/ai-quota";
 import { rateLimit } from "@/lib/rate-limit";
 import OpenAI from "openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+function getOpenAI() {
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,7 +23,7 @@ export async function POST(req: NextRequest) {
     const { messages, model = "gpt-4o" } = await req.json();
 
     // 4. Call OpenAI
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model,
       messages,
       max_tokens: 2048,

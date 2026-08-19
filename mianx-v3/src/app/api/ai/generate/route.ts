@@ -5,7 +5,9 @@ import { getAuthSession, AuthError } from "@/lib/auth-session";
 import { requireAiQuota, deductAiCredits } from "@/lib/ai-quota";
 import { rateLimit } from "@/lib/rate-limit";
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+function getAnthropic() {
+  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,7 +23,7 @@ export async function POST(req: NextRequest) {
     const { prompt, model = "claude-sonnet-4-20250514" } = await req.json();
 
     // 4. Call Anthropic
-    const response = await anthropic.messages.create({
+    const response = await getAnthropic().messages.create({
       model,
       max_tokens: 4096,
       messages: [{ role: "user", content: prompt }],
