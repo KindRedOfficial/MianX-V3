@@ -46,6 +46,13 @@ enum TaskRiskLevel {
   HIGH
 }
 
+enum AgentRiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
 enum MissionTaskStatus {
   PENDING
   IN_PROGRESS
@@ -131,6 +138,19 @@ model Subscription {
   currentPeriodEnd  DateTime
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
+}
+
+model Agent {
+  id            String          @id @default(cuid())
+  name          String          @unique           // e.g. "Atlas", "Zen"
+  role          String                            // e.g. "Backend Developer"
+  capabilities  Json                              // Array of strings e.g. ["API", "Database", "Auth"]
+  allowedTools  Json                              // Array of tool IDs/names this agent can use
+  riskLevel     AgentRiskLevel  @default(MEDIUM)
+  costProfile   Float          @default(0)       // estimated cost per task
+  isActive      Boolean        @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 }
 
 model Mission {
