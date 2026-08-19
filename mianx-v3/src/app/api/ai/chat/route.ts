@@ -1,35 +1,52 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAuthSession, AuthError } from "@/lib/auth-session";
+import { requireAiQuota, deductAiCredits } from "@/lib/ai-quota";
+import { rateLimit } from "@/lib/rate-limit";
 import OpenAI from "openai";
-
-// BUG: No auth check, no quota check, no rate limiting
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function POST(req: NextRequest) {
-  const { messages, model = "gpt-4o" } = await req.json();
+  try {
+    // 1. Authenticate session
+    const session = await getAuthSession();
 
-  // BUG: No session/auth check — anyone can call this endpoint
-  // BUG: No quota/credits check before calling OpenAI
-  // BUG: No rate limiting
+    // 2. Rate-limit per user (20 req/min)
+    await rateLimit({ key: `ai:chat:${session.user.id}`, limit: 20, windowMs: 60_000 });
 
-  const response = await openai.chat.completions.create({
-    model,
-    messages,
-    max_tokens: 2048,
-  });
+    // 3. Check AI quota before calling provider
+    const { organizationId } = await requireAiQuota(session.user.id);
 
-  const content = response.choices[0]?.message?.content ?? "";
-  const tokensUsed = response.usage?.total_tokens ?? 0;
+    const { messages, model = "gpt-4o" } = await req.json();
 
-  // Log usage but no enforcement
-  await prisma.aiUsageLog.create({
-    data: {
-      userId: "anonymous", // BUG: no real user ID
-      tokensUsed,
+    // 4. Call OpenAI
+    const response = await openai.chat.completions.create({
       model,
-    },
-  });
+      messages,
+      max_tokens: 2048,
+    });
 
-  return NextResponse.json({ content, tokensUsed });
+    const content = response.choices[0]?.message?.content ?? "";
+    const tokensUsed = response.usage?.total_tokens ?? 0;
+
+    // 5. Deduct credits & log usage
+    await deductAiCredits(organizationId, tokensUsed);
+    await prisma.aiUsageLog.create({
+      data: {
+        userId: session.user.id,
+        organizationId,
+        tokensUsed,
+        model,
+      },
+    });
+
+    return NextResponse.json({ content, tokensUsed });
+  } catch (err: unknown) {
+    if (err instanceof AuthError) {
+      return NextResponse.json({ error: err.message }, { status: err.statusCode });
+    }
+    console.error("AI chat error:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
