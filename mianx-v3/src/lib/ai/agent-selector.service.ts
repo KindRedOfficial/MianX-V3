@@ -3,7 +3,7 @@ import type { AgentRiskLevel } from "@/generated/prisma/enums";
 
 // ─── Risk Level Hierarchy ─────────────────────────────────────────────────────
 
-const RISK_HIERARCHY: Record<string, number> = {
+export const RISK_HIERARCHY: Record<string, number> = {
   LOW: 0,
   MEDIUM: 1,
   HIGH: 2,
@@ -25,7 +25,7 @@ export interface TaskRequirements {
   riskLevel: string;
 }
 
-interface AgentWithParsedFields {
+export interface AgentWithParsedFields {
   id: string;
   name: string;
   role: string;
@@ -41,7 +41,7 @@ interface AgentWithParsedFields {
 /**
  * Safely parse a Prisma Json field into a string array.
  */
-function parseStringArray(json: unknown): string[] {
+export function parseStringArray(json: unknown): string[] {
   if (Array.isArray(json)) {
     return json.filter((item): item is string => typeof item === "string");
   }
