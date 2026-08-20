@@ -53,6 +53,14 @@ enum TaskRiskLevel {
   HIGH
 }
 
+enum OutcomeStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  NEAR_TARGET
+  ACHIEVED
+  FAILED
+}
+
 enum AgentRiskLevel {
   LOW
   MEDIUM
@@ -184,6 +192,8 @@ model Mission {
   budget          Float          @default(0)
   budgetUsed      Float          @default(0)
   tasks           MissionTask[]
+  outcome         Outcome?
+  auditLogs       AuditLog[]
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 }
@@ -202,6 +212,29 @@ model MissionTask {
   sortOrder      Int               @default(0)
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
+}
+
+model Outcome {
+  id        String        @id @default(cuid())
+  missionId String        @unique
+  mission   Mission       @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  baseline  Float
+  target    Float
+  current   Float         @default(0)
+  status    OutcomeStatus @default(NOT_STARTED)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  missionId  String
+  mission    Mission  @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  agentName  String
+  action     String
+  result     String
+  cost       Float    @default(0)
+  createdAt  DateTime @default(now())
 }
 
 model Deliverable {
