@@ -59,7 +59,7 @@ export interface ToolExecutionResult {
  * Build a Zod schema dynamically from a JSON Schema-like definition stored in DB.
  * Supports a subset of Zod schema primitives: string, number, boolean, array, object.
  */
-function buildZodSchema(jsonSchema: unknown): z.ZodTypeUnknown {
+function buildZodSchema(jsonSchema: unknown): z.ZodTypeAny {
   if (!jsonSchema || typeof jsonSchema !== "object") {
     return z.unknown();
   }
@@ -101,7 +101,7 @@ function buildZodSchema(jsonSchema: unknown): z.ZodTypeUnknown {
  * sandboxed execution environments (e.g., Docker, Firecracker).
  */
 const MOCK_EXECUTORS: Record<string, (args: Record<string, unknown>) => unknown> = {
-  run_tests: (_args) => ({
+  run_tests: () => ({
     success: true,
     output: "All 10 tests passed.",
     testCount: 10,
