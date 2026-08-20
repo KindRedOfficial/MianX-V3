@@ -8,6 +8,22 @@ import type {
   KnowledgeRule,
 } from "./types";
 
+// ─── Lazy Bootstrap (replaces instrumentation.ts for Next.js 14 compat) ─────
+
+let _bootstrapped = false;
+
+async function ensureBootstrapped() {
+  if (_bootstrapped) return;
+  _bootstrapped = true;
+  try {
+    const { loadAllPacks } = await import("./bootstrap");
+    loadAllPacks();
+  } catch (e) {
+    console.warn("[PACK_REGISTRY] Bootstrap failed:", e);
+    _bootstrapped = false; // allow retry
+  }
+}
+
 // ─── In-Memory Registries ──────────────────────────────────────────────────
 
 const domainPacks = new Map<string, DomainPackManifest>();
@@ -87,27 +103,33 @@ export function getCountryPack(id: string): CountryPackManifest | undefined {
   return countryPacks.get(id);
 }
 
-export function listDomainPacks(): DomainPackManifest[] {
+export async function listDomainPacks(): Promise<DomainPackManifest[]> {
+  await ensureBootstrapped();
   return Array.from(domainPacks.values());
 }
 
-export function listCountryPacks(): CountryPackManifest[] {
+export async function listCountryPacks(): Promise<CountryPackManifest[]> {
+  await ensureBootstrapped();
   return Array.from(countryPacks.values());
 }
 
-export function getDomainEntities(domainPackId: string): DomainEntity[] {
+export async function getDomainEntities(domainPackId: string): Promise<DomainEntity[]> {
+  await ensureBootstrapped();
   return domainEntities.get(domainPackId) ?? [];
 }
 
-export function getDomainSkills(domainPackId: string): DomainSkill[] {
+export async function getDomainSkills(domainPackId: string): Promise<DomainSkill[]> {
+  await ensureBootstrapped();
   return domainSkills.get(domainPackId) ?? [];
 }
 
-export function getDomainWorkflows(domainPackId: string): DomainWorkflow[] {
+export async function getDomainWorkflows(domainPackId: string): Promise<DomainWorkflow[]> {
+  await ensureBootstrapped();
   return domainWorkflows.get(domainPackId) ?? [];
 }
 
-export function getDomainKnowledgeRules(domainPackId: string): KnowledgeRule[] {
+export async function getDomainKnowledgeRules(domainPackId: string): Promise<KnowledgeRule[]> {
+  await ensureBootstrapped();
   return domainKnowledgeRules.get(domainPackId) ?? [];
 }
 
@@ -117,10 +139,11 @@ export function getDomainKnowledgeRules(domainPackId: string): KnowledgeRule[] {
  * Resolve a combined PackContext from a domain + country pair.
  * This is what agents receive at mission planning time.
  */
-export function resolvePackContext(
+export async function resolvePackContext(
   domainPackId: string,
   countryPackId: string,
-): PackContext {
+): Promise<PackContext> {
+  await ensureBootstrapped();
   const domain = getDomainPack(domainPackId);
   if (!domain) {
     throw new Error(`Domain pack not found: ${domainPackId}`);
@@ -135,9 +158,9 @@ export function resolvePackContext(
     domain,
     country,
     resolvedAt: new Date().toISOString(),
-    entities: getDomainEntities(domainPackId),
-    skills: getDomainSkills(domainPackId),
-    workflows: getDomainWorkflows(domainPackId),
-    knowledgeRules: getDomainKnowledgeRules(domainPackId),
+    entities: await getDomainEntities(domainPackId),
+    skills: await getDomainSkills(domainPackId),
+    workflows: await getDomainWorkflows(domainPackId),
+    knowledgeRules: await getDomainKnowledgeRules(domainPackId),
   };
 }

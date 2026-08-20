@@ -3,11 +3,11 @@ import { notFound } from "next/navigation";
 import MissionDetailClient from "./MissionDetailClient";
 
 interface PageProps {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }
 
 export default async function MissionDetailPage({ params }: PageProps) {
-  const { id } = await params;
+  const { id } = params;
   const mission = await prisma.mission.findUnique({
     where: { id },
     include: { tasks: { orderBy: { sortOrder: "asc" } } },

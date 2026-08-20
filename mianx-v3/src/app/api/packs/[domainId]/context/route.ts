@@ -1,14 +1,11 @@
 import { NextResponse } from "next/server";
-import { loadAllPacks } from "@/lib/packs/bootstrap";
 import { resolvePackContext } from "@/lib/packs/registry.service";
 
 export async function GET(
   _request: Request,
-  { params }: { params: Promise<{ domainId: string }> },
+  { params }: { params: { domainId: string } },
 ) {
-  loadAllPacks();
-
-  const { domainId } = await params;
+  const { domainId } = params;
   const url = new URL(_request.url);
   const countryId = url.searchParams.get("countryId");
 
@@ -20,7 +17,7 @@ export async function GET(
   }
 
   try {
-    const context = resolvePackContext(domainId, countryId);
+    const context = await resolvePackContext(domainId, countryId);
     return NextResponse.json(context);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Pack resolution failed";

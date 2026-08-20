@@ -6,14 +6,14 @@ import { getMissionOutcome } from "@/lib/ai/outcome.service";
 
 export async function GET(
   _request: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
   try {
     // 1. Authenticate
     const session = await getAuthSession();
 
     // 2. Resolve params
-    const { id: missionId } = await params;
+    const { id: missionId } = params;
 
     // 3. Verify mission ownership
     const mission = await prisma.mission.findUnique({

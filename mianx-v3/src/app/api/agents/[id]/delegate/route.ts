@@ -9,7 +9,7 @@ interface DelegateRequestBody {
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
   try {
     // 1. Authenticate the user
@@ -34,7 +34,7 @@ export async function POST(
     }
 
     // 3. Resolve dynamic route param
-    const { id: parentAgentId } = await params;
+    const { id: parentAgentId } = params;
 
     // 4. Delegate (includes security checks)
     const delegatedTask = await delegateTask(parentAgentId, taskData);

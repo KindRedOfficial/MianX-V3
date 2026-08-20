@@ -5,14 +5,14 @@ import { executeMission } from "@/lib/ai/orchestrator.service";
 
 export async function POST(
   _request: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
   try {
     // 1. Authenticate
     const session = await getAuthSession();
 
     // 2. Resolve params
-    const { id: missionId } = await params;
+    const { id: missionId } = params;
 
     // 3. Fetch mission and verify ownership
     const mission = await prisma.mission.findUnique({
