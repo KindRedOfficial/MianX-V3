@@ -7,7 +7,6 @@ import {
   ChevronDown,
   ChevronRight,
   Zap,
-  GitBranch,
   AlertTriangle,
   Info,
   Shield,
@@ -57,10 +56,6 @@ interface DomainPack {
   id: string;
   name: string;
   version: string;
-  entities: string[];
-  skills: string[];
-  workflows: string[];
-  knowledgeRules: string[];
   entities: DomainEntity[];
   skills: DomainSkill[];
   workflows: DomainWorkflow[];
