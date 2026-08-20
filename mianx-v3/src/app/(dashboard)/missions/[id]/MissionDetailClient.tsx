@@ -9,6 +9,7 @@ import {
   Loader2,
   Wallet,
   Target,
+  ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -102,6 +103,13 @@ export default function MissionDetailClient({ mission }: { mission: Mission }) {
             <Clock className="w-3.5 h-3.5" />
             <span>{mission.tasks.length} tasks</span>
           </div>
+          <Link
+            href={`/missions/${mission.id}/trust-center`}
+            className="inline-flex items-center gap-1.5 text-sm text-[var(--color-accent-light)] hover:text-[var(--color-accent)] transition-colors"
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            Trust Center
+          </Link>
         </div>
 
         {/* Success Criteria */}
