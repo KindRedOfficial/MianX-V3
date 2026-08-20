@@ -7,6 +7,7 @@ import {
   Rocket,
   Users,
   ShieldCheck,
+  Package,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -17,6 +18,7 @@ const navItems = [
   { href: "/missions", label: "Missions", icon: Rocket },
   { href: "/agents", label: "AI Workforce", icon: Users },
   { href: "/trust", label: "Trust Center", icon: ShieldCheck },
+  { href: "/packs", label: "Packs", icon: Package },
 ];
 
 export default function Sidebar() {
