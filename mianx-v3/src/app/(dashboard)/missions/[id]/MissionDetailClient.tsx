@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -10,6 +11,7 @@ import {
   Wallet,
   Target,
   ShieldCheck,
+  Play,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -55,7 +57,77 @@ const RISK_COLORS: Record<string, string> = {
 
 // ─── Component ─────────────────────────────────────────────────────────────
 
-export default function MissionDetailClient({ mission }: { mission: Mission }) {
+export default function MissionDetailClient({ mission: initialMission }: { mission: Mission }) {
+  const [mission, setMission] = useState<Mission>(initialMission);
+  const [isRunning, setIsRunning] = useState(initialMission.status === "EXECUTING");
+  const [runError, setRunError] = useState<string | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const isExecutable =
+    mission.status === "PLANNING" || mission.status === "REPAIRING";
+  const isLive = mission.status === "EXECUTING";
+
+  // ── Polling ────────────────────────────────────────────────────────────
+  const stopPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+  }, []);
+
+  const startPolling = useCallback(() => {
+    stopPolling();
+    pollingRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/missions/${mission.id}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setMission(data.mission);
+
+        // Stop polling when mission is no longer executing
+        const status: string = data.mission.status;
+        if (status !== "EXECUTING") {
+          setIsRunning(false);
+          stopPolling();
+        }
+      } catch {
+        // Silently retry on next interval
+      }
+    }, 3000);
+  }, [mission.id, stopPolling]);
+
+  // Start polling if mission is already executing on mount
+  useEffect(() => {
+    if (initialMission.status === "EXECUTING") {
+      startPolling();
+    }
+    return stopPolling;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Run Mission Handler ────────────────────────────────────────────────
+  async function handleRunMission() {
+    setRunError(null);
+    setIsRunning(true);
+
+    try {
+      const res = await fetch(`/api/missions/${mission.id}/run`, {
+        method: "POST",
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? `HTTP ${res.status}`);
+      }
+
+      // Start polling for status updates
+      startPolling();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to start mission";
+      setRunError(message);
+      setIsRunning(false);
+    }
+  }
+
   const criteria = Array.isArray(mission.successCriteria) ? mission.successCriteria : [];
 
   return (
@@ -72,28 +144,35 @@ export default function MissionDetailClient({ mission }: { mission: Mission }) {
       {/* Mission Header */}
       <div className="bg-surface border border-border rounded-xl p-6 mb-8">
         <div className="flex items-start justify-between gap-4 mb-4">
-          <div>
+          <div className="flex-1 min-w-0">
             <h1 className="text-xl font-semibold mb-1">{mission.normalizedGoal}</h1>
             <p className="text-sm text-muted line-clamp-2">{mission.rawGoal}</p>
           </div>
-          <span
-            className={`
-              flex-shrink-0 px-2.5 py-1 rounded-full text-xs font-medium border
-              ${STATUS_CONFIG[mission.status]?.bg ?? "bg-zinc-500/10"} ${STATUS_CONFIG[mission.status]?.color ?? "text-zinc-400"}
-              border-current/20
-            `}
-          >
-            {mission.status}
-          </span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span
+              className={`
+                px-2.5 py-1 rounded-full text-xs font-medium border
+                ${STATUS_CONFIG[mission.status]?.bg ?? "bg-zinc-500/10"} ${STATUS_CONFIG[mission.status]?.color ?? "text-zinc-400"}
+                border-current/20
+              `}
+            >
+              {isLive ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  EXECUTING
+                </span>
+              ) : (
+                mission.status
+              )}
+            </span>
+          </div>
         </div>
 
-        {/* Meta row */}
-        <div className="flex flex-wrap gap-4 text-sm text-muted">
+        {/* Meta row + Run button */}
+        <div className="flex flex-wrap items-center gap-4 text-sm text-muted">
           <div className="flex items-center gap-1.5">
             <Wallet className="w-3.5 h-3.5" />
-            <span>
-              Budget: ${mission.budget.toFixed(2)}
-            </span>
+            <span>Budget: ${mission.budget.toFixed(2)}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <Target className="w-3.5 h-3.5" />
@@ -110,7 +189,39 @@ export default function MissionDetailClient({ mission }: { mission: Mission }) {
             <ShieldCheck className="w-3.5 h-3.5" />
             Trust Center
           </Link>
+
+          {/* Run Mission Button */}
+          {isExecutable && (
+            <button
+              onClick={handleRunMission}
+              disabled={isRunning}
+              className="
+                ml-auto inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+                bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-light)]
+                disabled:opacity-50 disabled:cursor-not-allowed transition-colors
+              "
+            >
+              {isRunning ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Running...
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4" />
+                  Run Mission
+                </>
+              )}
+            </button>
+          )}
         </div>
+
+        {/* Run error */}
+        {runError && (
+          <div className="mt-3 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
+            {runError}
+          </div>
+        )}
 
         {/* Success Criteria */}
         {criteria.length > 0 && (
@@ -134,6 +245,12 @@ export default function MissionDetailClient({ mission }: { mission: Mission }) {
       <div>
         <h2 className="text-sm font-medium text-muted uppercase tracking-wider mb-4">
           Task Graph
+          {isLive && (
+            <span className="ml-2 inline-flex items-center gap-1 text-blue-400">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Live
+            </span>
+          )}
         </h2>
 
         {mission.tasks.length === 0 ? (
@@ -146,18 +263,14 @@ export default function MissionDetailClient({ mission }: { mission: Mission }) {
             <div className="absolute left-5 top-3 bottom-3 w-px bg-border" />
 
             <div className="space-y-3">
-              {mission.tasks.map((task, idx) => {
+              {mission.tasks.map((task) => {
                 const cfg = STATUS_CONFIG[task.status] ?? STATUS_CONFIG.PENDING;
                 const StatusIcon = cfg.icon;
-                const isLast = idx === mission.tasks.length - 1;
 
                 return (
                   <div
                     key={task.id}
-                    className={`relative flex gap-4 p-4 rounded-xl bg-surface border border-border
-                      ${!isLast ? "" : ""}
-                      hover:bg-surface-hover transition-colors
-                    `}
+                    className="relative flex gap-4 p-4 rounded-xl bg-surface border border-border hover:bg-surface-hover transition-colors"
                   >
                     {/* Status dot */}
                     <div
