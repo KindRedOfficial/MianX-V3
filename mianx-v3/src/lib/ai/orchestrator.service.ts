@@ -153,6 +153,8 @@ function mockLLMResponse(
       return {
         thought: "I need to gather information to complete this task. Let me use the available tool.",
         toolCall: { name: "read_file", args: { path: "/workspace/project" } },
+        done: false,
+        summary: "",
       };
     }
   }
@@ -459,15 +461,6 @@ export async function executeMission(missionId: string): Promise<void> {
     // 4c+d. Execute with ReAct loop + verification
     try {
       await executeSingleTask(readyTask, agentInfo, missionId);
-
-      // Refresh task status from DB (verification may have updated it)
-      const updated = await prisma.missionTask.findUnique({
-        where: { id: readyTask.id },
-      });
-      if (updated) {
-        readyTask.status = updated.status;
-        if (updated.status === "FAILED") hasFailure = true;
-      }
     } catch (err: unknown) {
       const errorMsg =
         err instanceof Error ? err.message : "Unknown execution error";
