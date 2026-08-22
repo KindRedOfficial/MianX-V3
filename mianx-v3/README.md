@@ -1,3 +1,5 @@
+> Build Version: 1.0.1 (Final Auth Fix)
+
 # MianX.ai V3 — The Agentic AI Operating System
 
 > **Give your team a goal. MianX turns it into action.**

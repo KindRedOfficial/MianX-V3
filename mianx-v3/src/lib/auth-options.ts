@@ -65,7 +65,7 @@ export const authOptions: NextAuthOptions = {
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err);
           const stack = err instanceof Error ? err.stack : undefined;
-          console.error("[NextAuth authorize] EXCEPTION:", message, stack);
+          console.error("AUTHORIZE_ERROR:", message, stack);
           return null;
         }
       },
@@ -89,6 +89,5 @@ export const authOptions: NextAuthOptions = {
     },
   },
   pages: { signIn: "/login" },
-  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || undefined,
-  debug: process.env.NODE_ENV === "development",
+  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
 };
