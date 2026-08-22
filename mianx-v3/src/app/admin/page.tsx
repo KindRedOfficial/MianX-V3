@@ -30,7 +30,7 @@ export default function CommandCenterPage() {
       }
 
       const data = (await res.json()) as { missionId: string };
-      router.push(`/missions/${data.missionId}`);
+      router.push(`/admin/missions/${data.missionId}`);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Something went wrong";
       setError(message);

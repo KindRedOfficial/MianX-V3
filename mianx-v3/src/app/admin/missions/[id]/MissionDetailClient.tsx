@@ -133,10 +133,7 @@ export default function MissionDetailClient({ mission: initialMission }: { missi
   return (
     <div className="max-w-3xl mx-auto">
       {/* Back link */}
-      <Link
-        href="/"
-        className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground mb-6 transition-colors"
-      >
+      <Link href="/admin" className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground mb-6 transition-colors">
         <ArrowLeft className="w-4 h-4" />
         Command Center
       </Link>
@@ -182,8 +179,7 @@ export default function MissionDetailClient({ mission: initialMission }: { missi
             <Clock className="w-3.5 h-3.5" />
             <span>{mission.tasks.length} tasks</span>
           </div>
-          <Link
-            href={`/missions/${mission.id}/trust-center`}
+          <Link href={`/admin/missions/${mission.id}/trust-center`}
             className="inline-flex items-center gap-1.5 text-sm text-[var(--color-accent-light)] hover:text-[var(--color-accent)] transition-colors"
           >
             <ShieldCheck className="w-3.5 h-3.5" />

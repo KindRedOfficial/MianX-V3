@@ -4,10 +4,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
-
-// ─── Enums ───────────────────────────────────────────────────────────────────
 
 enum ToolRiskLevel {
   LOW
@@ -76,21 +74,21 @@ enum MissionTaskStatus {
   SKIPPED
 }
 
-// ─── Models ──────────────────────────────────────────────────────────────────
-
 model User {
   id              String             @id @default(cuid())
   email           String             @unique
   name            String?
+  passwordHash    String?
   role            Role               @default(USER)
   organizationId  String?
   organization    Organization?      @relation(fields: [organizationId], references: [id])
   accounts        Account[]
   sessions        Session[]
   webhookEvents   WebhookEvent[]
-  missions       Mission[]
+  missions        Mission[]
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
+  @@map("users")
 }
 
 model Organization {
@@ -101,6 +99,7 @@ model Organization {
   users       User[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  @@map("organizations")
 }
 
 model Account {
@@ -117,8 +116,8 @@ model Account {
   id_token          String?
   session_state     String?
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
   @@unique([provider, providerAccountId])
+  @@map("accounts")
 }
 
 model Session {
@@ -127,6 +126,7 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("sessions")
 }
 
 model WebhookEvent {
@@ -141,6 +141,7 @@ model WebhookEvent {
   updatedAt     DateTime            @updatedAt
   userId        String?
   user          User?               @relation(fields: [userId], references: [id])
+  @@map("webhook_events")
 }
 
 model Subscription {
@@ -153,42 +154,45 @@ model Subscription {
   currentPeriodEnd  DateTime
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
+  @@map("subscriptions")
 }
 
 model Agent {
   id            String          @id @default(cuid())
-  name          String          @unique           // e.g. "Atlas", "Zen"
-  role          String                            // e.g. "Backend Developer"
-  capabilities  Json                              // Array of strings e.g. ["API", "Database", "Auth"]
-  allowedTools  Json                              // Array of tool IDs/names this agent can use
+  name          String          @unique
+  role          String
+  capabilities  Json
+  allowedTools  Json
   riskLevel     AgentRiskLevel  @default(MEDIUM)
-  costProfile   Float          @default(0)       // estimated cost per task
+  costProfile   Float          @default(0)
   isActive      Boolean        @default(true)
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
+  @@map("agents")
 }
 
 model Tool {
   id           String        @id @default(cuid())
   name         String        @unique
   description  String
-  inputSchema  Json          // Zod-compatible schema definition
-  outputSchema Json          // Expected output structure
+  inputSchema  Json
+  outputSchema Json
   riskLevel    ToolRiskLevel @default(MEDIUM)
   isEnabled    Boolean       @default(true)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+  @@map("tools")
 }
 
 model Mission {
   id              String         @id @default(cuid())
   userId          String
   user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  rawGoal         String         // The user's original natural-language input
-  normalizedGoal  String         // Parsed, clean objective
+  rawGoal         String
+  normalizedGoal  String
   status          MissionStatus  @default(DRAFT)
-  complexity      String         @default("MEDIUM")  // LOW, MEDIUM, HIGH
-  successCriteria Json           // Array of measurable criteria
+  complexity      String         @default("MEDIUM")
+  successCriteria Json
   budget          Float          @default(0)
   budgetUsed      Float          @default(0)
   tasks           MissionTask[]
@@ -196,6 +200,7 @@ model Mission {
   auditLogs       AuditLog[]
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
+  @@map("missions")
 }
 
 model MissionTask {
@@ -203,15 +208,16 @@ model MissionTask {
   missionId      String
   mission        Mission           @relation(fields: [missionId], references: [id], onDelete: Cascade)
   title          String
-  agent          String            // e.g. "Atlas", "Zen"
-  dependencies   String            // JSON array of dependency task titles
+  agent          String
+  dependencies   String
   riskLevel      TaskRiskLevel     @default(MEDIUM)
   status         MissionTaskStatus @default(PENDING)
-  result         String?           // Output / artifact reference when completed
-  error          String?           // Error message if failed
+  result         String?
+  error          String?
   sortOrder      Int               @default(0)
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
+  @@map("mission_tasks")
 }
 
 model Outcome {
@@ -224,6 +230,7 @@ model Outcome {
   status    OutcomeStatus @default(NOT_STARTED)
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
+  @@map("outcomes")
 }
 
 model AuditLog {
@@ -235,18 +242,20 @@ model AuditLog {
   result     String
   cost       Float    @default(0)
   createdAt  DateTime @default(now())
+  @@map("audit_logs")
 }
 
 model Deliverable {
   id              String   @id @default(cuid())
   projectId       String
   name            String
-  content         String   // BUG: stores base64 data — will be migrated to storageUrl
-  contentEncoding String   @default("base64") // BUG: no longer needed after migration
-  mimeType        String   @default("application/octet-stream") // BUG: no longer needed after migration
-  storageUrl      String?  // Will replace `content` after migration
+  content         String
+  contentEncoding String   @default("base64")
+  mimeType        String   @default("application/octet-stream")
+  storageUrl      String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  @@map("deliverables")
 }
 
 model DomainPack {
@@ -254,10 +263,11 @@ model DomainPack {
   packId    String   @unique
   name      String
   version   String
-  manifest  Json     // Full DomainPackManifest
+  manifest  Json
   isEnabled Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  @@map("domain_packs")
 }
 
 model CountryPack {
@@ -266,17 +276,19 @@ model CountryPack {
   name      String
   locale    String
   currency  String
-  manifest  Json     // Full CountryPackManifest
+  manifest  Json
   isEnabled Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  @@map("country_packs")
 }
 
 model AiUsageLog {
-  id              String   @id @default(cuid())
-  userId          String
-  organizationId  String?
-  tokensUsed      Int
-  model           String
-  createdAt       DateTime @default(now())
+  id             String   @id @default(cuid())
+  userId         String
+  organizationId String?
+  tokensUsed     Int
+  model          String
+  createdAt      DateTime @default(now())
+  @@map("ai_usage_logs")
 }

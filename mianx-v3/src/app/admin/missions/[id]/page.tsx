@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import MissionDetailClient from "./MissionDetailClient";
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   params: { id: string };
 }

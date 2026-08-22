@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import TrustCenterClient from "./TrustCenterClient";
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   params: { id: string };
 }

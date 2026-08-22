@@ -124,7 +124,7 @@ export default function TrustCenterClient({
     <div className="space-y-8">
       {/* Back link */}
       <Link
-        href={`/missions/${mission.id}`}
+        href={`/admin/missions/${mission.id}`}
         className="inline-flex items-center gap-2 text-sm text-[var(--color-muted)] hover:text-[var(--color-foreground)] transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
